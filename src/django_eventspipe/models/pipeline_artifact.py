@@ -33,7 +33,6 @@ class PipelineArtifact(models.Model):
         """
         Get stored artifacts for a Pipeline
         """
-
         out = {}
         artifacts = cls.objects.filter(pipeline=pipeline)
 

@@ -1,13 +1,11 @@
 import platform
 
-from celery import chain
-
+from django.apps import apps
+from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import User
 from django.contrib.admin.models import LogEntry, ADDITION
 from django.contrib.contenttypes.models import ContentType
-from django.apps import apps
-from django.utils import timezone
 
 from django_eventspipe.utils import get_sentinel_user
 
@@ -31,12 +29,16 @@ class Pipeline(models.Model):
     user         = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
 
     @classmethod
-    def new_from_event(cls, user: User, event: dict[str, object]) -> object | bool:
+    def new_from_event(
+        cls, 
+        user: User, 
+        event: dict[str, object]
+    ) -> object | bool:
         """
-        This function attempt to create and execute a `Pipeline` objects from a dict.
-        `Pipeline` objects require a `PipelineDefinition` object defined in order to start.
+        This function attempt to create and execute `Pipeline` objects from a event dictionary.
+        `Pipeline` object require a `PipelineDefinition` object defined in order to start.
         Filtered `PipelineDefinition` objects always have priority over generic ones,
-        this allow replacing 's definitions only when required. 
+        this allow replacing definitions only when required. 
         """
         PipelineDefinition = apps.get_model("django_eventspipe.PipelineDefinition")
 
@@ -65,19 +67,34 @@ class Pipeline(models.Model):
             pipeline.save()
 
             # Run Pipeline
-            pipeline.run(event)
+            pipeline.execute(event)
             pipelines.append(pipeline)
 
         return pipelines
 
-    def __str__(self):
+    @property
+    def __task_progress_str(self) -> str:
+        if self.tasks_count > 0:
+            return "[%d/%d]" % (self.current_task+1, self.tasks_count)
+        else:
+            return ""
+
+    @property
+    def artifacts(self) -> dict[str, object]:
+        """
+        Get stored artifacts for this Pipeline
+        """
+        PipelineArtifact = apps.get_model("django_eventspipe.PipelineArtifact")
+
+        return PipelineArtifact.get_artifacts(self)
+
+    def __str__(self) -> str:
         return "Pipeline #%d" % self.pk
 
     def save_artifact(self, file_name: str, file_data: bytes) -> bool:
         """
         Save an artifact for this Pipeline
         """
-
         PipelineArtifact = apps.get_model("django_eventspipe.PipelineArtifact")
 
         return PipelineArtifact.add_artifact(
@@ -86,15 +103,7 @@ class Pipeline(models.Model):
             file_data = file_data,
         )
 
-    def get_artifacts(self) -> dict[str, object]:
-        """
-        Get stored artifacts for this Pipeline
-        """
-        PipelineArtifact = apps.get_model("django_eventspipe.PipelineArtifact")
-
-        return PipelineArtifact.get_artifacts(self)
-
-    def run(self, event: dict[str, object]) -> None:
+    def execute(self, event: dict[str, object]) -> None:
         """ 
         Execute a `Pipeline`
         """
@@ -119,9 +128,6 @@ class Pipeline(models.Model):
         # Get Task definition for this event on this perimeter
         pipeline_tasks   = Task.create_tasks(self)
 
-        # Get celery chain for this pipeline
-        tasks_chain_list = self.definition.get_tasks_chain(context) 
-
         # No Tasks defined for this pipeline, exit
         if len(pipeline_tasks) <= 0:
             self.status = 1
@@ -137,16 +143,15 @@ class Pipeline(models.Model):
         self.tasks_count = len(pipeline_tasks)
         self.save()
 
-        # Start celery chain
-        pipeline_chain = chain(tasks_chain_list) 
+        # Get and start celery chain for this pipeline
+        pipeline_chain = self.definition.get_tasks_chain(context) 
         pipeline_chain.apply_async()
 
     def log(self, entry: str) -> None:
         """
         Add a LogEntry on a `Pipeline`
         """
-        progress = "[%d/%d] " % (self.current_task, self.tasks_count) 
-        log_entry = "%s%s" % (progress, entry)
+        log_entry = "%s%s" % (self.__task_progress_str, entry)
 
         # Add an ADDITION logentry for this asset
         LogEntry.objects.log_action(

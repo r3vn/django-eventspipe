@@ -1,3 +1,5 @@
+from celery import chain
+
 from django.db import models
 from django.apps import apps
 from django.utils.module_loading import import_string
@@ -9,14 +11,11 @@ class PipelineDefinition(models.Model):
     enabled   = models.BooleanField(default=True)
 
     @classmethod
-    def get_definitions(cls, event):
+    def get_definitions(cls, event: dict[str, object]) -> list[object]:
         """
         Get pipeline definitions for a given event.
         """
-        event_name = event.get("name")
-
-        # Use ORM to fetch enabled definitions for the event in one query
-        all_definitions = cls.objects.filter(event=event_name, enabled=True)
+        all_definitions = cls.objects.filter(event=event["name"], enabled=True)
 
         # Separate generic and custom definitions
         generic_definitions = []
@@ -40,38 +39,37 @@ class PipelineDefinition(models.Model):
         # Return custom definitions if available, otherwise return generic ones
         return custom_definitions if custom_definitions else generic_definitions
 
-    def get_defined_tasks(self) -> list:
+    @property
+    def defined_tasks(self) -> list[object]:
         """
         Get Tasks defined for this PipelineDefinition
         """
         PipelineDefinitionTaskDefinition = apps.get_model('django_eventspipe.PipelineDefinitionTaskDefinition')
 
         tasks = []
-        for definition in PipelineDefinitionTaskDefinition.objects.filter(pipeline_definition=self, enabled=True).order_by('order'):
+
+        for definition in PipelineDefinitionTaskDefinition.objects.filter(
+            pipeline_definition=self, 
+            enabled=True
+        ).order_by('order'):
             tasks.append(definition)
 
         return tasks
 
-    def get_tasks_chain(self, context) -> list:
+    def get_tasks_chain(self, context: dict[str, object]) -> chain:
         """
         Get Tasks defined for this PipelineDefinition as a celery chain
         """
-        PipelineDefinitionTaskDefinition = apps.get_model('django_eventspipe.PipelineDefinitionTaskDefinition')
-
-        chain = []
+        task_chain = []
         first = True
 
-        for task_function in PipelineDefinitionTaskDefinition.objects.filter(
-            pipeline_definition=self, 
-            enabled=True
-        ).order_by('order').values_list('task_definition__function'):
-
+        for definition in self.defined_tasks:
             if first:
-                signature = import_string(task_function[0]).s(context)
+                signature = import_string(definition.task_definition.function).s(context)
                 first = False
             else:
-                signature = import_string(task_function[0]).s()
+                signature = import_string(definition.task_definition.function).s()
 
-            chain.append(signature)
+            task_chain.append(signature)
 
-        return chain
+        return chain(task_chain)

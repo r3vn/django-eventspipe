@@ -89,12 +89,12 @@ class EventSchedule(models.Model):
         return ScheduleEntry(
             name     = self.entry_name,
             schedule = self.schedule,
-            task     = 'django_eventspipe.tasks.trigger_event_schedule',
+            task     = 'django_eventspipe.tasks.__trigger_event_schedule',
             args     = [self.pk],
         )
 
     @property
-    def schedule(self) -> object:
+    def schedule(self) -> schedules.crontab:
         """
         Get crontab schedules for an EventSchedule object
         """

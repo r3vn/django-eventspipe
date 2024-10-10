@@ -18,7 +18,8 @@ class Artifact(models.Model):
 
         return file
         
-    def get_size(self) -> float:
+    @property
+    def size(self) -> float:
         """
         Get size in KB of a file
         """

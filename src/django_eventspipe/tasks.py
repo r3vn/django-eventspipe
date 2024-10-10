@@ -4,7 +4,7 @@ from .signals import event_signal
 from .models import EventSchedule
 
 @shared_task
-def trigger_event_schedule(schedule_pk: int) -> None:
+def __trigger_event_schedule(schedule_pk: int) -> None:
     """
     This task trigger an event
     """

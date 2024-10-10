@@ -17,7 +17,7 @@ class DynamicScheduler(Scheduler):
 
     def sync(self) -> None:
         """
-        Sync the schedule immediately without waiting for the next tick.
+        Sync the schedule.
         """
         logger.info("Updating schedule from database...")
 
@@ -49,6 +49,7 @@ class DynamicScheduler(Scheduler):
         # Remove tasks that are no longer present in the database
         current_task_ids = {s.entry_name for s in schedules}
         to_remove = [task_id for task_id in self.schedule if task_id not in current_task_ids]
+
         for task_id in to_remove:
             del self.schedule[task_id]
             logger.info(f"Removed task: {task_id}")

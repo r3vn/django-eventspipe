@@ -25,7 +25,7 @@ class Task(models.Model):
         """
         tasks = []
 
-        for defined_task in pipeline.definition.get_defined_tasks():
+        for defined_task in pipeline.definition.defined_tasks:
             # Create Task
             task = cls(
                 status     = 3,
@@ -48,7 +48,7 @@ class Task(models.Model):
             task.status = 2   
             task.save()
 
-    def tracking_start(self, node:str) -> None:
+    def tracking_start(self, node: str) -> None:
         """
         Start tracking a `Task`
         """
