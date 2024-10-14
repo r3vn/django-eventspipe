@@ -21,6 +21,7 @@ class Pipeline(models.Model):
     node         = models.CharField(max_length=256, default="undefined")
     name         = models.CharField(max_length=128)
     status       = models.IntegerField(default=3, choices=STATUS_CHOICES)
+    event        = models.JSONField(blank=True, null=True, default=dict)
     definition   = models.ForeignKey('django_eventspipe.PipelineDefinition', on_delete=models.SET_NULL, blank=True, null=True)
     tasks_count  = models.IntegerField(default=0)
     current_task = models.IntegerField(default=0)
@@ -36,17 +37,17 @@ class Pipeline(models.Model):
     ) -> object | bool:
         """
         This function attempt to create and execute `Pipeline` objects from a event dictionary.
-        `Pipeline` object require a `PipelineDefinition` object defined in order to start.
-        Filtered `PipelineDefinition` objects always have priority over generic ones,
-        this allow replacing definitions only when required. 
         """
         PipelineDefinition = apps.get_model("django_eventspipe.PipelineDefinition")
 
-        # Check for available info for this event
-        if "info" in event.keys():
-            pipeline_name = "%s %s" % (event["name"], event["info"])
-        else:
-            pipeline_name = event["name"]
+        # Set a name for this pipeline
+        pipeline_name = ""
+        event_values = list(event.values())
+        
+        if len(event_values) >= 2:
+            pipeline_name = "%s %s" % (event_values[0], event_values[1])
+        elif len(event_values) == 1:
+            pipeline_name = "%s" % event_values[0]
 
         # Create the pipeline objects
         pipelines   = []
@@ -59,15 +60,16 @@ class Pipeline(models.Model):
         for definition in definitions:
             # Create Pipeline object
             pipeline = cls(
-                name=pipeline_name, 
-                user=user, 
-                node=platform.node(),
-                definition=definition
+                name       = pipeline_name, 
+                user       = user, 
+                node       = platform.node(),
+                event      = event,
+                definition = definition
             )
             pipeline.save()
 
             # Run Pipeline
-            pipeline.execute(event)
+            pipeline.execute()
             pipelines.append(pipeline)
 
         return pipelines
@@ -103,14 +105,14 @@ class Pipeline(models.Model):
             file_data = file_data,
         )
 
-    def execute(self, event: dict[str, object]) -> None:
+    def execute(self) -> None:
         """ 
         Execute a `Pipeline`
         """
         Task = apps.get_model("django_eventspipe.Task")
 
         # add initial pipeline's log entry
-        self.log("Event received %s" % str(event))
+        self.log("Event received.") # %s" % str(event))
 
         # Get initial context from event
         context = {
@@ -118,8 +120,8 @@ class Pipeline(models.Model):
         }
 
         # retrive context data from event
-        for data in event.keys():
-            context[data] = event[data]
+        for data in self.event.keys():
+            context[data] = self.event[data]
 
         # retrive context data from PipelineDefinitinon's options
         for data in self.definition.options.keys():

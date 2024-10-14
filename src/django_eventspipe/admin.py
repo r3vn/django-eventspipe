@@ -49,11 +49,16 @@ class InlineTask(admin.TabularInline):
     def _name(self, obj):
         return "%s" % obj.definition.task_definition.function
 
-class JsonOptionsForm(forms.ModelForm):
+class PipelineDefinitionForm(forms.ModelForm):
     options = forms.JSONField(
         encoder=PrettyJSONEncoder,
         required=False
     )
+    rules = forms.JSONField(
+        encoder=PrettyJSONEncoder,
+        required=False
+    )
+
 
 class JsonEventForm(forms.ModelForm):
     event = forms.JSONField(
@@ -148,12 +153,11 @@ class PipelineDefinitionAdmin(admin.ModelAdmin):
     list_display = (
         "pk",
         "enabled",
-        "event",
-        "filters",
+        "rules",
         "tasks_definition"
     )
     inlines = [InlineTaskDefinition]
-    form = JsonOptionsForm
+    form = PipelineDefinitionForm
 
     @admin.action(description="Disable selected PipelineDefinition")
     def disable_selection(self, request, queryset):

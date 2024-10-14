@@ -5,39 +5,44 @@ from django.apps import apps
 from django.utils.module_loading import import_string
 
 class PipelineDefinition(models.Model):
-    event     = models.CharField(max_length=256)
-    filters   = models.JSONField(blank=True, null=True, default=dict)
-    options   = models.JSONField(blank=True, null=True, default=dict)
-    enabled   = models.BooleanField(default=True)
+
+    rules   = models.JSONField(blank=True, null=True, default=dict)
+    options = models.JSONField(blank=True, null=True, default=dict)
+    enabled = models.BooleanField(default=True)
 
     @classmethod
     def get_definitions(cls, event: dict[str, object]) -> list[object]:
         """
-        Get pipeline definitions for a given event.
+        This method implements best-match filtering by returning only the definitions
+        with the highest number of matching rules. Definitions with fewer matches
+        are excluded if a higher-matching one exists.
         """
-        all_definitions = cls.objects.filter(event=event["name"], enabled=True)
-
-        # Separate generic and custom definitions
-        generic_definitions = []
-        custom_definitions = []
+        all_definitions = cls.objects.filter(enabled=True)
+        matching_definitions = []
+        max_matches = 0
 
         for definition in all_definitions:
-            filters = definition.filters or {}
+            rules = definition.rules or {}
+            match_count = 0
             
-            # Check if filters exist, otherwise it's a generic definition
-            if filters:
-                match = all(
-                    event.get(key) == value 
-                    for key, value in filters.items()
-                    if key in event
-                )
-                if match:
-                    custom_definitions.append(definition)
-            else:
-                generic_definitions.append(definition)
+            # Count the number of matching rules
+            for key, value in rules.items():
+                if key in event and event[key] == value:
+                    match_count += 1
 
-        # Return custom definitions if available, otherwise return generic ones
-        return custom_definitions if custom_definitions else generic_definitions
+            # If no rules, consider it a generic definition
+            if match_count > 0:
+                if match_count > max_matches:
+                    max_matches = match_count
+                    matching_definitions = [definition]
+                elif match_count == max_matches:
+                    matching_definitions.append(definition)
+            else:
+                # For generic definitions, if no custom ones are better
+                if max_matches == 0:
+                    matching_definitions.append(definition)
+
+        return matching_definitions
 
     @property
     def defined_tasks(self) -> list[object]:

@@ -10,6 +10,10 @@ class PipelineArtifact(models.Model):
     artifact  = models.ForeignKey("django_eventspipe.Artifact", on_delete=models.CASCADE)
     timestamp = models.DateTimeField(auto_now_add=True, null=True)
 
+    class Meta:
+        verbose_name = "Artifact"
+        verbose_name_plural = "Artifacts"
+
     @classmethod
     def add_artifact(cls, pipeline: object, file_name: str, file_data: bytes) -> bool:
         """
@@ -40,4 +44,4 @@ class PipelineArtifact(models.Model):
             out[artifact.file_name] = bytes(artifact.artifact.data)
 
         return out
-
+ 
