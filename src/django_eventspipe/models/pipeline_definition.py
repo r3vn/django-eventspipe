@@ -13,36 +13,42 @@ class PipelineDefinition(models.Model):
     @classmethod
     def get_definitions(cls, event: dict[str, object]) -> list[object]:
         """
+        Get pipeline definitions for a given event, ensuring all filter values match.
+        
         This method implements best-match filtering by returning only the definitions
-        with the highest number of matching rules. Definitions with fewer matches
-        are excluded if a higher-matching one exists.
+        where all filters match the corresponding event data (AND condition).
+        Definitions with fewer matches are excluded if higher-matching ones exist.
         """
         all_definitions = cls.objects.filter(enabled=True)
+
         matching_definitions = []
+
         max_matches = 0
 
         for definition in all_definitions:
-            rules = definition.rules or {}
-            match_count = 0
+            rules = definition.rules
             
-            # Count the number of matching rules
-            for key, value in rules.items():
-                if key in event and event[key] == value:
-                    match_count += 1
-
-            # If no rules, consider it a generic definition
-            if match_count > 0:
-                if match_count > max_matches:
-                    max_matches = match_count
-                    matching_definitions = [definition]
-                elif match_count == max_matches:
-                    matching_definitions.append(definition)
+            # If filters are present, ensure all conditions match
+            if rules:
+                match = all(event.get(key) == value for key, value in rules.items() if key in event)
+                
+                # Count the number of matching filters (AND condition)
+                match_count = sum(1 for key, value in rules.items() if event.get(key) == value)
+                
+                # Only consider definitions where all filter conditions match
+                if match:
+                    if match_count > max_matches:
+                        max_matches = match_count
+                        matching_definitions = [definition]
+                    elif match_count == max_matches:
+                        matching_definitions.append(definition)
             else:
-                # For generic definitions, if no custom ones are better
+                # Generic definitions with no filters
                 if max_matches == 0:
                     matching_definitions.append(definition)
 
         return matching_definitions
+
 
     @property
     def defined_tasks(self) -> list[object]:
