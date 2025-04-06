@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.apps import apps
 
@@ -5,6 +7,7 @@ class PipelineArtifact(models.Model):
     """
     Artifact -> Pipeline association
     """
+    uuid      = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     file_name = models.CharField(max_length=1024, default="undefined")
     pipeline  = models.ForeignKey("django_eventspipe.Pipeline", on_delete=models.CASCADE)
     artifact  = models.ForeignKey("django_eventspipe.Artifact", on_delete=models.CASCADE)
@@ -15,7 +18,12 @@ class PipelineArtifact(models.Model):
         verbose_name_plural = "Artifacts"
 
     @classmethod
-    def add_artifact(cls, pipeline: object, file_name: str, file_data: bytes) -> bool:
+    def add_artifact(
+        cls, 
+        pipeline: object, 
+        file_name: str, 
+        file_data: bytes
+    ) -> bool:
         """
         Add a new artifact to the database
         """

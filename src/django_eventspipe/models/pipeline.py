@@ -1,4 +1,5 @@
 import platform
+import uuid
 
 from django.apps import apps
 from django.utils import timezone
@@ -18,6 +19,7 @@ class Pipeline(models.Model):
         (3, "queued")
     ]
 
+    uuid         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     node         = models.CharField(max_length=256, default="undefined")
     name         = models.CharField(max_length=128)
     status       = models.IntegerField(default=3, choices=STATUS_CHOICES)
@@ -86,9 +88,7 @@ class Pipeline(models.Model):
         """
         Get stored artifacts for this Pipeline
         """
-        PipelineArtifact = apps.get_model("django_eventspipe.PipelineArtifact")
-
-        return PipelineArtifact.get_artifacts(self)
+        return self.pipeline_artifact_set.all()
 
     def __str__(self) -> str:
         return "Pipeline #%d" % self.pk
@@ -153,14 +153,14 @@ class Pipeline(models.Model):
         """
         Add a LogEntry on a `Pipeline`
         """
-        log_entry = "%s%s" % (self.__task_progress_str, entry)
+        log_entry = "%s %s" % (self.__task_progress_str, entry)
 
         # Add an ADDITION logentry for this asset
         LogEntry.objects.log_action(
             user_id=self.user.pk,
             content_type_id=ContentType.objects.get_for_model(Pipeline).pk,
-            object_id=self.id,
-            object_repr="Pipeline #%d" % self.id,
+            object_id=self.uuid,
+            object_repr="Pipeline #%s" % self.uuid,
             action_flag=ADDITION,
             change_message=log_entry
         )

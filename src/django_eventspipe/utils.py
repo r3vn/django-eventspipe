@@ -2,14 +2,13 @@ import json
 
 from django.urls import reverse
 from django.utils.html import format_html
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 
 def get_sentinel_user() -> User:
     """
-    Prevent pipeline removal when deleting an user
+    Prevent Pipeline removal when deleting an user
     """
-    return get_user_model().objects.get_or_create(username="deleted")[0]
+    return User.objects.get_or_create(username="deleted")[0]
 
 def linkify(field_path: str) -> str:
     """

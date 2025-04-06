@@ -1,3 +1,5 @@
+import uuid
+
 from celery import chain
 
 from django.db import models
@@ -6,6 +8,7 @@ from django.utils.module_loading import import_string
 
 class PipelineDefinition(models.Model):
 
+    uuid    = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     rules   = models.JSONField(blank=True, null=True, default=dict)
     options = models.JSONField(blank=True, null=True, default=dict)
     enabled = models.BooleanField(default=True)

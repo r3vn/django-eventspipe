@@ -1,3 +1,4 @@
+import uuid
 import hashlib
 
 from django.db import models
@@ -12,6 +13,7 @@ from django_eventspipe.utils import cronexp, get_sentinel_user
 
 class EventSchedule(models.Model):
 
+    uuid  = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     event = models.JSONField(
         default    = dict, 
         validators = [validators.event_validator],

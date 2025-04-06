@@ -37,7 +37,7 @@ class InlineTask(admin.TabularInline):
         """
         Read job's status properly
         """
-        colors = ["#2196F3","#04AA6D","#f23232", "#f8f8f8", "#ff9800"]
+        colors = ["#2196F3","#04AA6D","#f23232", "#C8C8C8", "#ff9800"]
         return format_html(
             "<span style=\"background-color:%s;display:block;text-align:center;font-size:0.6rem;padding:1px;max-width:55px;\"><b>%s</b></span>" 
             % (
@@ -89,6 +89,7 @@ class PipelineAdmin(admin.ModelAdmin):
         "start_ts",
         "end_ts"
     )
+    ordering = ("start_ts",)
     readonly_fields = []
     inlines = [InlineTask]
 

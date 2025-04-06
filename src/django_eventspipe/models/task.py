@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models 
 from django.utils import timezone
 
@@ -11,6 +13,7 @@ class Task(models.Model):
         (4, "skipped")
     ]
 
+    uuid       = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     status     = models.IntegerField(default=2, choices=STATUS_CHOICES)
     node       = models.CharField(max_length=256, default="undefined")
     pipeline   = models.ForeignKey('django_eventspipe.Pipeline', on_delete=models.CASCADE)

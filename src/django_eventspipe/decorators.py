@@ -18,6 +18,8 @@ def tracked_task(func):
 
         # Get Pipeline object
         self.pipeline = Pipeline.objects.get(pk=context["pipeline"])
+
+        self.context = context
         
         # Get current pipeline's task
         pipeline_task = Task.objects.get(
@@ -32,7 +34,7 @@ def tracked_task(func):
 
         try:
             # Execute Task
-            result = func(self, context, *args, **kw)
+            func(self, *args, **kw)
 
             # Set Task's status as success
             pipeline_task.tracking_update(1)
@@ -48,6 +50,6 @@ def tracked_task(func):
 
         self.pipeline.log("'%s' execution complete." % taskname)
 
-        return result
+        return self.context
 
     return wrapper

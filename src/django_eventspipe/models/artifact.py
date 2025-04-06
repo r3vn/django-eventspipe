@@ -1,9 +1,12 @@
 import hashlib
+import uuid
+
 from django.db import models, transaction
 
 class Artifact(models.Model):
-    data = models.BinaryField(blank=True)
-    md5sum = models.CharField(max_length=32, blank=True, editable=False, unique=True)
+    uuid   = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    data   = models.BinaryField(blank=True)
+    md5sum = models.CharField(max_length=32, editable=False, unique=True)
 
     @classmethod
     def get_or_create(cls, data: bytes) -> "Artifact":
