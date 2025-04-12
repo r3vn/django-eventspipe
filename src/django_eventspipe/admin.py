@@ -18,7 +18,7 @@ from .models import (
 class InlineTask(admin.TabularInline):
     model = Task
     extra = 0
-    ordering = ("pk",)
+    ordering = ("start_ts",)
     can_delete = False
     readonly_fields = [
         '_status',
@@ -89,7 +89,7 @@ class PipelineAdmin(admin.ModelAdmin):
         "start_ts",
         "end_ts"
     )
-    ordering = ("start_ts",)
+    ordering = ("-start_ts",)
     readonly_fields = []
     inlines = [InlineTask]
 
