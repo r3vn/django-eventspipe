@@ -18,5 +18,5 @@ def create_pipelines(
     Signal handler to create `Pipeline` objects from an event
     """
     logger.info("executing '%s'" % str(event))
-    Pipeline.new_from_event(sender, event)
+    Pipeline.objects.new_from_event(sender, event)
 

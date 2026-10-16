@@ -1,14 +1,20 @@
 import traceback
 import platform
 
+from celery import shared_task
 from functools import wraps
 
 from .models import Pipeline, Task
 from .exceptions import TaskFailed
 
+
 def tracked_task(func):
     @wraps(func)
-    def wrapper(self, context: dict[str, object], *args, **kw) -> dict[str, object]:
+    def wrapper(
+        self,
+        context: dict[str, object],
+        *args, **kw
+    ) -> dict[str, object]:
         
         # HACK: Get task name
         if str(func.__name__) in str(func.__module__):
@@ -18,6 +24,8 @@ def tracked_task(func):
 
         # Get Pipeline object
         self.pipeline = Pipeline.objects.get(pk=context["pipeline"])
+
+        self.context = context
         
         # Get current pipeline's task
         pipeline_task = Task.objects.get(
@@ -32,7 +40,7 @@ def tracked_task(func):
 
         try:
             # Execute Task
-            result = func(self, context, *args, **kw)
+            func(self, *args, **kw)
 
             # Set Task's status as success
             pipeline_task.tracking_update(1)
@@ -48,6 +56,25 @@ def tracked_task(func):
 
         self.pipeline.log("'%s' execution complete." % taskname)
 
-        return result
+        return self.context
 
     return wrapper
+
+
+def pipeline_task(*, name=None, **celery_options):
+    """
+    Register a Celery task with pipeline tracking.
+    """
+    celery_options.setdefault("bind", True)
+
+    def decorator(func):
+        # Wrap the function with pipeline tracking
+        tracked_func = tracked_task(func)
+
+        # Register the tracked function with Celery
+        if name is not None:
+            celery_options["name"] = name
+
+        return shared_task(**celery_options)(tracked_func)
+
+    return decorator

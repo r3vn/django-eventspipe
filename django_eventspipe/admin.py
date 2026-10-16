@@ -21,7 +21,7 @@ class InlineTask(admin.TabularInline):
     ordering = ("pk",)
     can_delete = False
     readonly_fields = [
-        '_status',
+        'status_badge',
         '_name',
         'node',
         'start_ts',
@@ -33,17 +33,22 @@ class InlineTask(admin.TabularInline):
         'status'
     ]
 
-    def _status(self, obj):
-        """
-        Read job's status properly
-        """
-        colors = ["#2196F3","#04AA6D","#f23232", "#f8f8f8", "#ff9800"]
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        colors = {
+            0: "#2196F3",
+            1: "#04AA6D",
+            2: "#f23232",
+            3: "#f8f8f8",
+        }
+
         return format_html(
-            "<span style=\"background-color:%s;display:block;text-align:center;font-size:0.6rem;padding:1px;max-width:55px;\"><b>%s</b></span>" 
-            % (
-                colors[obj.status], 
-                obj.get_status_display().upper()
-            )
+            '<span style="background-color:{};'
+            'display:block;text-align:center;'
+            'font-size:0.6rem;padding:1px;max-width:55px;">'
+            '<b>{}</b></span>',
+            colors.get(obj.status, "#808080"),
+            obj.get_status_display().upper(),
         )
 
     def _name(self, obj):
@@ -83,7 +88,7 @@ class InlineTaskDefinition(admin.TabularInline):
 class PipelineAdmin(admin.ModelAdmin):
     list_display = (
         "pk",
-        "_status",
+        "status_badge",
         "name",
         linkify("user"),
         "start_ts",
@@ -104,17 +109,22 @@ class PipelineAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False
 
-    def _status(self, obj):
-        """
-        Read job's status properly
-        """
-        colors = ["#2196F3","#04AA6D","#f23232", "#f8f8f8"]
+    @admin.display(description="Status")
+    def status_badge(self, obj):
+        colors = {
+            0: "#2196F3",
+            1: "#04AA6D",
+            2: "#f23232",
+            3: "#f8f8f8",
+        }
+
         return format_html(
-            "<span style=\"background-color:%s;display:block;text-align:center;font-size:0.6rem;padding:1px;max-width:55px;\"><b>%s</b></span>" 
-            % (
-                colors[obj.status], 
-                obj.get_status_display().upper()
-            )
+            '<span style="background-color:{};'
+            'display:block;text-align:center;'
+            'font-size:0.6rem;padding:1px;max-width:55px;">'
+            '<b>{}</b></span>',
+            colors.get(obj.status, "#808080"),
+            obj.get_status_display().upper(),
         )
 
 @admin.register(EventSchedule)

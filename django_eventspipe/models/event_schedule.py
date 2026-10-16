@@ -10,6 +10,20 @@ from celery.beat import ScheduleEntry
 from django_eventspipe import validators
 from django_eventspipe.utils import cronexp, get_sentinel_user
 
+
+class EventScheduleManager(models.Manager):
+    def compute_hash(self) -> str:
+        """
+        Compute a hash of the enabled schedules to detect changes.
+        """
+        schedules = self.filter(enabled=True)
+        schedule_str = ''.join(
+            f"{s.pk}-{s.__str__}"
+            for s in schedules
+        )
+        return hashlib.md5(schedule_str.encode()).hexdigest()
+
+
 class EventSchedule(models.Model):
 
     event = models.JSONField(
@@ -55,17 +69,7 @@ class EventSchedule(models.Model):
         validators   = [validators.day_of_week_validator],
     )
 
-    @classmethod
-    def compute_hash(cls) -> str:
-        """
-        Compute a hash of the enabled schedules to detect changes.
-        """
-        schedules = cls.objects.filter(enabled=True)
-        schedule_str = ''.join(
-            f"{s.pk}-{s.__str__}" 
-            for s in schedules
-        )
-        return hashlib.md5(schedule_str.encode()).hexdigest()
+    objects = EventScheduleManager()
 
     def __str__(self) -> str:
         return '{} {} {} {} {} ({})'.format(

@@ -1,5 +1,34 @@
-from django.db import models 
+from django.db import models
 from django.utils import timezone
+
+
+class TaskManager(models.Manager):
+
+    def create_tasks(self, pipeline: object) -> list:
+        """
+        Create Tasks for a given pipeline.
+        """
+        tasks = []
+
+        for defined_task in pipeline.definition.defined_tasks:
+            task = self.create(
+                status=3,
+                pipeline=pipeline,
+                definition=defined_task,
+            )
+            tasks.append(task)
+
+        return tasks
+
+    def pipeline_failed(self, pipeline: object) -> None:
+        """
+        Set all queued Tasks as failed.
+        """
+        self.filter(
+            status=3,
+            pipeline=pipeline,
+        ).update(status=2)
+
 
 class Task(models.Model):
 
@@ -18,35 +47,7 @@ class Task(models.Model):
     start_ts   = models.DateTimeField(blank=True, null=True)
     end_ts     = models.DateTimeField(blank=True, null=True)
 
-    @classmethod
-    def create_tasks(cls, pipeline: object) -> list:
-        """
-        Create `Task` for a given pipeline
-        """
-        tasks = []
-
-        for defined_task in pipeline.definition.defined_tasks:
-            # Create Task
-            task = cls(
-                status     = 3,
-                pipeline   = pipeline,
-                definition = defined_task
-            )
-            task.save()
-            tasks.append(task)
-    
-        return tasks
-
-    @classmethod
-    def pipeline_failed(cls, pipeline: object) -> None:
-        """
-        Set all queued `Task` as failed.
-        """
-        tasks = cls.objects.all().filter(status=3, pipeline=pipeline) # kill both queued and running
-
-        for task in tasks:
-            task.status = 2   
-            task.save()
+    objects = TaskManager()
 
     def tracking_start(self, node: str) -> None:
         """

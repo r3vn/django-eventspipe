@@ -22,7 +22,7 @@ class DynamicScheduler(Scheduler):
         logger.info("Updating schedule from database...")
 
         # Compute the new schedule hash
-        new_hash = EventSchedule.compute_hash()
+        new_hash = EventSchedule.objects.compute_hash()
 
         # If the schedule hasn't changed, skip the update
         if new_hash == self.current_hash:

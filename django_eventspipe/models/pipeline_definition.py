@@ -4,14 +4,10 @@ from django.db import models
 from django.apps import apps
 from django.utils.module_loading import import_string
 
-class PipelineDefinition(models.Model):
 
-    rules   = models.JSONField(blank=True, null=True, default=dict)
-    options = models.JSONField(blank=True, null=True, default=dict)
-    enabled = models.BooleanField(default=True)
+class PipelineDefinitinoManager(models.Manager):
 
-    @classmethod
-    def get_definitions(cls, event: dict[str, object]) -> list[object]:
+    def get_definitions(self, event: dict[str, object]) -> list[object]:
         """
         Get pipeline definitions for a given event, ensuring all filter values match.
         
@@ -19,10 +15,8 @@ class PipelineDefinition(models.Model):
         where all filters match the corresponding event data (AND condition).
         Definitions with fewer matches are excluded if higher-matching ones exist.
         """
-        all_definitions = cls.objects.filter(enabled=True)
-
+        all_definitions = self.filter(enabled=True)
         matching_definitions = []
-
         max_matches = 0
 
         for definition in all_definitions:
@@ -49,6 +43,14 @@ class PipelineDefinition(models.Model):
 
         return matching_definitions
 
+
+class PipelineDefinition(models.Model):
+
+    rules   = models.JSONField(blank=True, null=True, default=dict)
+    options = models.JSONField(blank=True, null=True, default=dict)
+    enabled = models.BooleanField(default=True)
+
+    objects = PipelineDefinitinoManager()
 
     @property
     def defined_tasks(self) -> list[object]:
