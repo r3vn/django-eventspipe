@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.urls import reverse
 
 from .utils import linkify, PrettyJSONEncoder
@@ -14,6 +14,7 @@ from .models import (
     PipelineArtifact,
     EventSchedule
 )
+
 
 class InlineTask(admin.TabularInline):
     model = Task
@@ -54,6 +55,7 @@ class InlineTask(admin.TabularInline):
     def _name(self, obj):
         return "%s" % obj.definition.task_definition.function
 
+
 class PipelineDefinitionForm(forms.ModelForm):
     options = forms.JSONField(
         encoder=PrettyJSONEncoder,
@@ -70,6 +72,7 @@ class JsonEventForm(forms.ModelForm):
         encoder=PrettyJSONEncoder,
         required=False
     )
+
 
 class InlineTaskDefinition(admin.TabularInline):
     model = PipelineDefinitionTaskDefinition
@@ -127,6 +130,7 @@ class PipelineAdmin(admin.ModelAdmin):
             obj.get_status_display().upper(),
         )
 
+
 @admin.register(EventSchedule)
 class EventScheduleAdmin(admin.ModelAdmin):
     list_display = (
@@ -157,6 +161,7 @@ class EventScheduleAdmin(admin.ModelAdmin):
             object.save()
 
     actions = [duplicate_selection, enable_selection, disable_selection]
+
 
 @admin.register(PipelineDefinition)
 class PipelineDefinitionAdmin(admin.ModelAdmin):
@@ -199,19 +204,31 @@ class PipelineDefinitionAdmin(admin.ModelAdmin):
 
     def tasks_definition(self, obj):
         """
-        Return a "pretty" tasks execution order view 
+        Return a pretty tasks execution order view.
         """
-        rt_string = ""
-        for definition in PipelineDefinitionTaskDefinition.objects.filter(pipeline_definition=obj).order_by('order'):
-            if definition.enabled:
-                job_name = definition.task_definition.function
-            else:
-                # task is disabled, Strikethrough the function name
-                job_name = "<s style=\"color:var(--delete-button-bg)\">%s</s>" % definition.task_definition.function
+        definitions = (
+            PipelineDefinitionTaskDefinition.objects
+            .filter(pipeline_definition=obj)
+            .select_related("task_definition")
+            .order_by("order")
+        )
 
-            rt_string = "%s <span style=\"color:var(--link-fg)\">→</span> %s" % (rt_string, job_name)
+        return format_html_join(
+            "",
+            ' <span style="color:var(--link-fg)">&rarr;</span> {}',
+            (
+                (
+                    format_html(
+                        '<s style="color:var(--delete-button-bg)">{}</s>',
+                        definition.task_definition.function,
+                    )
+                    if not definition.enabled
+                    else format_html("{}", definition.task_definition.function),
+                )
+                for definition in definitions
+            ),
+        )
 
-        return format_html(rt_string)
 
 @admin.register(TaskDefinition)
 class TaskDefinitionAdmin(admin.ModelAdmin):
@@ -220,6 +237,7 @@ class TaskDefinitionAdmin(admin.ModelAdmin):
         "description"
     )
     ordering = ('function',)
+
 
 @admin.register(PipelineArtifact)
 class PipelineArtifactAdmin(admin.ModelAdmin):
@@ -249,7 +267,10 @@ class PipelineArtifactAdmin(admin.ModelAdmin):
 
     def download(self, obj: PipelineArtifact) -> str:
         url = reverse('get_artifact', args=(obj.pk,))
-        return format_html("<a class='button' href='%s'>📝 DOWNLOAD</a>" % url)
+        return format_html(
+            '<a class="button" href="{}">📝 DOWNLOAD</a>',
+            url,
+        )
 
     def _size(self, obj: PipelineArtifact) -> str:
         return "%s KB" % str(obj.artifact.size)
