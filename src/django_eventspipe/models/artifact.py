@@ -1,5 +1,7 @@
 import hashlib
+
 from django.db import models, transaction
+from .base import UUID4Model
 
 
 class ArtifactManager(models.Manager):
@@ -21,9 +23,13 @@ class ArtifactManager(models.Manager):
         return artifact
 
 
-class Artifact(models.Model):
+class Artifact(UUID4Model):
+
     data = models.BinaryField(blank=True)
     md5sum = models.CharField(max_length=32, blank=True, editable=False, unique=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField('creation date', auto_now_add=True)
 
     objects = ArtifactManager()
 

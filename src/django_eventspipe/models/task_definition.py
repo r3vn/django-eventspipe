@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils.module_loading import import_string
 
+from .base import UUID4Model
+
 
 class TaskDefinitionManager(models.Manager):
     
@@ -37,10 +39,13 @@ class TaskDefinitionManager(models.Manager):
             except: pass
 
 
-class TaskDefinition(models.Model):
+class TaskDefinition(UUID4Model):
 
     function    = models.CharField(max_length=512, unique=True)
     description = models.TextField(null=True, blank=True)
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField('creation date', auto_now_add=True)
 
     objects = TaskDefinitionManager()
 

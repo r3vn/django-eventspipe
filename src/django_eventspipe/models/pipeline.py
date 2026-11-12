@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.admin.models import LogEntry, ADDITION
 
 from django_eventspipe.utils import get_sentinel_user
+from .base import UUID4Model
 
 
 class PipelineManager(models.Manager):
@@ -56,7 +57,7 @@ class PipelineManager(models.Manager):
         return pipelines
 
 
-class Pipeline(models.Model):
+class Pipeline(UUID4Model):
     
     STATUS_CHOICES = [
         (0, "running"),
@@ -77,6 +78,9 @@ class Pipeline(models.Model):
     user         = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
 
     objects = PipelineManager()
+    
+    def __str__(self) -> str:
+        return "Pipeline #%s" % self.short_uuid
 
     @property
     def __task_progress_str(self) -> str:
@@ -93,9 +97,6 @@ class Pipeline(models.Model):
         PipelineArtifact = apps.get_model("django_eventspipe.PipelineArtifact")
 
         return PipelineArtifact.objects.get_artifacts(self)
-
-    def __str__(self) -> str:
-        return "Pipeline #%d" % self.pk
 
     def save_artifact(self, file_name: str, file_data: bytes) -> bool:
         """

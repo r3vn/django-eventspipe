@@ -1,13 +1,15 @@
 from django.db import models
 from django.apps import apps
 
+from .base import UUID4Model
+
 
 class PipelineArtifactManager(models.Manager):
 
     def add_artifact(
         self, 
-        pipeline: object, 
-        file_name: str, 
+        pipeline: object,
+        file_name: str,
         file_data: bytes
     ) -> bool:
         """
@@ -39,10 +41,11 @@ class PipelineArtifactManager(models.Manager):
         return out
  
 
-class PipelineArtifact(models.Model):
+class PipelineArtifact(UUID4Model):
     """
     Artifact -> Pipeline association
     """
+
     file_name = models.CharField(max_length=1024, default="undefined")
     pipeline  = models.ForeignKey("django_eventspipe.Pipeline", on_delete=models.CASCADE)
     artifact  = models.ForeignKey("django_eventspipe.Artifact", on_delete=models.CASCADE)

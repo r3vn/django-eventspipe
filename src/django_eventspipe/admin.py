@@ -19,7 +19,7 @@ from .models import (
 class InlineTask(admin.TabularInline):
     model = Task
     extra = 0
-    ordering = ("pk",)
+    ordering = ("definition__order",)
     can_delete = False
     readonly_fields = [
         'status_badge',
@@ -89,8 +89,9 @@ class InlineTaskDefinition(admin.TabularInline):
 
 @admin.register(Pipeline)
 class PipelineAdmin(admin.ModelAdmin):
+    ordering = ("-start_ts",)
     list_display = (
-        "pk",
+        "short_uuid",
         "status_badge",
         "name",
         linkify("user"),
@@ -133,12 +134,15 @@ class PipelineAdmin(admin.ModelAdmin):
 
 @admin.register(EventSchedule)
 class EventScheduleAdmin(admin.ModelAdmin):
+    ordering = ("-created_at",)
     list_display = (
-        "pk",
+        "short_uuid",
         "enabled",
         "__str__",
         "user",
         "event",
+        "created_at",
+        "updated_at"
     )
     form = JsonEventForm
 
@@ -165,11 +169,14 @@ class EventScheduleAdmin(admin.ModelAdmin):
 
 @admin.register(PipelineDefinition)
 class PipelineDefinitionAdmin(admin.ModelAdmin):
+    ordering = ("-created_at",)
     list_display = (
-        "pk",
+        "short_uuid",
         "enabled",
         "rules",
-        "tasks_definition"
+        "tasks_definition",
+        "created_at",
+        "updated_at"
     )
     inlines = [InlineTaskDefinition]
     form = PipelineDefinitionForm
@@ -232,7 +239,9 @@ class PipelineDefinitionAdmin(admin.ModelAdmin):
 
 @admin.register(TaskDefinition)
 class TaskDefinitionAdmin(admin.ModelAdmin):
+    ordering = ("created_at",)
     list_display = (
+        "short_uuid",
         "function",
         "description"
     )
@@ -241,8 +250,9 @@ class TaskDefinitionAdmin(admin.ModelAdmin):
 
 @admin.register(PipelineArtifact)
 class PipelineArtifactAdmin(admin.ModelAdmin):
+    ordering = ("-timestamp",)
     list_display = (
-        "pk",
+        "short_uuid",
         "file_name",
         "_size",
         "artifact__md5sum",

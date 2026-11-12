@@ -5,11 +5,13 @@ from django.utils.html import format_html
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User
 
+
 def get_sentinel_user() -> User:
     """
     Prevent pipeline removal when deleting an user
     """
     return get_user_model().objects.get_or_create(username="deleted")[0]
+
 
 def linkify(field_path: str) -> str:
     """
@@ -40,11 +42,13 @@ def linkify(field_path: str) -> str:
     _linkify.short_description = field_path.replace('.', ' -> ')  # Sets column name
     return _linkify
 
+
 def cronexp(field: str):
     """
     Representation of cron expression.
     """
     return field and field.replace(' ', '') or '*'
+
 
 # https://stackoverflow.com/a/72256767
 class PrettyJSONEncoder(json.JSONEncoder):

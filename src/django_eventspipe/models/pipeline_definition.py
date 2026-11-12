@@ -3,6 +3,7 @@ from celery import chain
 from django.db import models
 from django.apps import apps
 from django.utils.module_loading import import_string
+from .base import UUID4Model
 
 
 class PipelineDefinitinoManager(models.Manager):
@@ -44,13 +45,19 @@ class PipelineDefinitinoManager(models.Manager):
         return matching_definitions
 
 
-class PipelineDefinition(models.Model):
+class PipelineDefinition(UUID4Model):
 
     rules   = models.JSONField(blank=True, null=True, default=dict)
     options = models.JSONField(blank=True, null=True, default=dict)
     enabled = models.BooleanField(default=True)
 
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField('creation date', auto_now_add=True)
+
     objects = PipelineDefinitinoManager()
+
+    def __str__(self) -> str:
+        return "PipelineDefinition #%s" % self.short_uuid
 
     @property
     def defined_tasks(self) -> list[object]:

@@ -10,6 +10,8 @@ from celery.beat import ScheduleEntry
 from django_eventspipe import validators
 from django_eventspipe.utils import cronexp, get_sentinel_user
 
+from .base import UUID4Model
+
 
 class EventScheduleManager(models.Manager):
     def compute_hash(self) -> str:
@@ -24,7 +26,7 @@ class EventScheduleManager(models.Manager):
         return hashlib.md5(schedule_str.encode()).hexdigest()
 
 
-class EventSchedule(models.Model):
+class EventSchedule(UUID4Model):
 
     event = models.JSONField(
         default    = dict, 
@@ -33,7 +35,8 @@ class EventSchedule(models.Model):
     )
     user     = models.ForeignKey(User, on_delete=models.SET(get_sentinel_user))
     enabled  = models.BooleanField(default=False)
-    minute   = models.CharField(
+
+    minute = models.CharField(
         max_length   = 60 * 4, 
         default      = '*',
         verbose_name = 'Minute(s)',
@@ -68,6 +71,9 @@ class EventSchedule(models.Model):
         help_text    = 'Cron Days Of The Week to Run. Use "*" for "all", Sunday is 0 or 7, Monday is 1. (Example: "0,5")',
         validators   = [validators.day_of_week_validator],
     )
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField('creation date', auto_now_add=True)
 
     objects = EventScheduleManager()
 

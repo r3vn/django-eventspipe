@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from .base import UUID4Model
+
 
 class TaskManager(models.Manager):
 
@@ -30,7 +32,7 @@ class TaskManager(models.Manager):
         ).update(status=2)
 
 
-class Task(models.Model):
+class Task(UUID4Model):
 
     STATUS_CHOICES = [
         (0, "running"),
@@ -48,6 +50,9 @@ class Task(models.Model):
     end_ts     = models.DateTimeField(blank=True, null=True)
 
     objects = TaskManager()
+
+    def __str__(self) -> str:
+        return "Task #%s" % self.short_uuid
 
     def tracking_start(self, node: str) -> None:
         """
