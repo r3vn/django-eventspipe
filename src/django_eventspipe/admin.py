@@ -161,7 +161,7 @@ class EventScheduleAdmin(admin.ModelAdmin):
     @admin.action(description="Duplicate selected EventSchedule")
     def duplicate_selection(self, request, queryset):
         for object in queryset:
-            object.id = None
+            object.pk = None
             object.save()
 
     actions = [duplicate_selection, enable_selection, disable_selection]
@@ -199,7 +199,7 @@ class PipelineDefinitionAdmin(admin.ModelAdmin):
 
             task_definitions = PipelineDefinitionTaskDefinition.objects.filter(pipeline_definition=object)
 
-            object.id = None
+            object.pk = None
             object.save()
 
             for task_definition in task_definitions:
